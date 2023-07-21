@@ -1,0 +1,61 @@
+log  thermo_output_temp_1.0
+units       lj
+dimension   3
+boundary    p p p
+atom_style  molecular 
+
+
+region box block -10.0 10.0 -10.0 10.0 -10.0 10.0
+create_box 1 box  
+create_atoms 1 random 6080 30349 box 
+
+pair_style  lj/cut 2.5 
+pair_coeff 1 1 1.0 1.0 
+
+neighbor  0.5 bin
+neigh_modify  every 10 delay 0
+timestep      0.001
+
+group tracer type 1 
+mass * 1.0 
+
+velocity all create 1.0 4928459 dist gaussian
+
+minimize 0.0 0.0 1000 10000
+####### NPT EQUILIB TO DENSE 
+fix 1 all nvt temp 0.5 0.5 $(100.0*dt) 
+
+# variable ramp1 equal ramp(-30,-12.5)
+# fix mywall1 all wall/reflect zlo v_ramp1
+
+# variable ramp2 equal ramp(30,12.5)
+# fix mywall2 all wall/reflect zhi v_ramp2
+
+
+thermo        100000
+thermo_style  custom step pe ke temp press density lx ly lz
+thermo_modify flush yes line yaml 
+dump img all custom 1000 traj id mol mass type x y z 
+#dump img1 all custom 1000000 config_150 id mol mass type xu yu zu 
+
+run           100000
+
+#write_dump all custom config_150 id mol mass type xu yu zu 
+
+unfix 1 
+#undump img1
+undump img 
+group none empty
+change_box none z final -100 100  
+
+
+
+# read_dump config_150 1000000 x y z box no 
+
+# fix fxlange all langevin 1.0 1.0 1000.0 265358
+# fix fxstandard all nve
+# #dump img all custom 1000 traj id mol mass type x y z
+
+# run 100000
+
+write_data out_0.5.data
